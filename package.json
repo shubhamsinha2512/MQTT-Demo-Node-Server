@@ -1,0 +1,17 @@
+{
+  "name": "mqtt-demo-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "testmqtt.js",
+  "scripts": {
+    "start": "node index.js app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mqtt": "^4.2.8",
+    "nodemon": "^2.0.12",
+    "socket.io": "^4.1.3"
+  }
+}
