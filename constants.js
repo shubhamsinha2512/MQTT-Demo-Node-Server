@@ -1,4 +1,4 @@
-export const MAX = {
+const MAX = {
     HEART_RATE : 120,
     BPD : 120,
     BPS : 250,
@@ -7,7 +7,7 @@ export const MAX = {
     SPO2 : 100
 }
 
-export const MIN = {
+const MIN = {
     HEART_RATE : 50,
     BPD : 60,
     BPS : 120,
@@ -15,3 +15,5 @@ export const MIN = {
     BODY_TEMP : 35,
     SPO2 : 92
 }
+
+module.exports = {MAX, MIN}
