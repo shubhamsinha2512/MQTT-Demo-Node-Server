@@ -3,7 +3,6 @@ const server = require('http').createServer(app)
 
 const mqtt = require('mqtt')
 
-
 const io = require('socket.io')(server, {
     cors: {
         origin: '*'
@@ -12,7 +11,7 @@ const io = require('socket.io')(server, {
 
 
 io.on('connection', (socket)=>{
-
+    console.log('Client connected', socket.id)
     const client = mqtt.connect('mqtt://122.160.15.59')
     client.on('connect', ()=>{
         client.subscribe('details', (err)=>{
@@ -25,10 +24,9 @@ io.on('connection', (socket)=>{
     client.on('message', (topic, message)=>{
         // data = {...message}
         console.log(JSON.parse(message))
-        socket.emit('liveData', JSON.parse(message))
+        socket.emit('liveData', message)
         console.log('emitted')
     })
-
 })
 
 

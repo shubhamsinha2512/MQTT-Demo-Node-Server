@@ -82,7 +82,6 @@ function generateDummyValues() {
       "mac": "SURYA888",
       "bleName": false, "rssi": -45, "rawData": rawData
     }]
-
 }
 
 function randomIntFromInterval(min, max) { // min and max included 
