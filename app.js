@@ -10,6 +10,7 @@ const io = require('socket.io')(server, {
 
 const {MAX, MIN} = require('./constants.js')
 const {DEVICE_TRIGGERS, SYSTEM_TRIGGERS} = require('./triggers.js')
+const ERROR = require('./errors')
 
 //Namespaces
 const ALL = io.of('/')
@@ -27,6 +28,24 @@ client.on('connect', ()=>{
     })
 })
 
+function randomIntFromInterval(min, max) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+  }
+
+function getDummyVitals(){
+
+    let heartRate = randomIntFromInterval(60, 100) //60 - 100 normal 
+    let spo2 = randomIntFromInterval(70, 100)
+    let trigger = randomIntFromInterval(1,3);
+    let battery = randomIntFromInterval(20,100)
+    let bps = randomIntFromInterval(90, 150)
+    let bpd = randomIntFromInterval(40, 100)
+    let bodyTemp = randomIntFromInterval(25, 45)
+
+    return {heartRate, spo2, trigger, battery, bps, bpd, bodyTemp}
+}
+
+//Returns triggers based in vitals recieved from device
 function checkTriggers(vitals){
 
     let triggers = []
@@ -69,18 +88,135 @@ io.on('connection', (socket)=>{
 MONITORING_STATION.on('connection', (socket)=> {
     console.log(`${socket.id} - connected to Monitoring Station Namespace`)
     
-    socket.on('subscribe', (payload)=>{
-        // console.log(payload)
-        client.on('message', (topic, message)=>{
-            // payload.MACS.forEach(MAC => {
-            //     console.log({MAC: MAC, ...JSON.parse(message)})
-            // })
-            let triggers = checkTriggers(JSON.parse(message))
-            socket.emit('liveData', {...JSON.parse(message), triggers})
-            console.log('emitted')
-        })
+    socket.on('subscribeOnePatient', (payload)=>{
+        console.log('Single', payload)
+        //payload : {userId, role, patientId, MAC} should be payload structure
+
+        if(!payload) {
+            socket.emit('error', ERROR.NO_PAYLOAD_FOUND)
+            socket.disconnect()
+            return;
+        } 
+
+        if(!payload.patientId){
+            socket.emit('error', ERROR.INVALID_PAYLOAD_STRUCTURE)
+            socket.disconnect()
+            return;
+        } 
+
+        if(!payload.MAC){
+            socket.emit('error', ERROR.INVALID_PAYLOAD_STRUCTURE)
+            socket.disconnect()
+            return;
+        } 
+        else{
+            //Dummy Data
+
+            let interval = setInterval(()=> {
+
+                let data = {
+                    userId : payload.userId, 
+                    role: payload.role, 
+                    patientId : payload.patientId,
+                    MAC : payload.MAC
+                }
+
+                let vitals = getDummyVitals()
+                let triggers = checkTriggers(vitals)
+
+                data = {...data, ...vitals, triggers}
+                console.log('data', data)
+                socket.emit('DATA_LIVE_SINGLE', data)
+
+            }, 5000)
+            socket.on('disconnect', ()=>{
+                clearInterval(interval)
+                console.log('Demo data stopped!')
+            })
+        }
+
+        // client.on('message', (topic, message)=>{
+        //     // payload.MACS.forEach(MAC => {
+        //     //     console.log({MAC: MAC, ...JSON.parse(message)})
+        //     // })
+        //     let triggers = checkTriggers(JSON.parse(message))
+        //     socket.emit('liveData', {...JSON.parse(message), triggers})
+        //     console.log('emitted')
+        // })
     })
-    socket.on('disconnect', () =>  console.log(`Client Disconnected From Monitoring Station - ${socket.id}`))
+
+    socket.on('subscribeMultiplePatients', (payload)=>{
+        console.log('Multiple', payload)
+        //payload : {userId, role, patients:[{paitnetId,MAC}]} should be payload structure
+
+        if(!payload) {
+            socket.emit('error', ERROR.NO_PAYLOAD_FOUND)
+            socket.disconnect()
+            return;
+        } 
+    
+        if(!payload.patients){
+            socket.emit('error', ERROR.INVALID_PAYLOAD_STRUCTURE)
+            socket.disconnect()
+            return;
+        } 
+
+        if(payload.patients.length === 0){
+            socket.emit('error', ERROR.PAYLOAD_EMPTY)
+            socket.disconnect()
+            return;
+        }
+        else{
+            //Dummy Data
+
+            let interval = setInterval(()=> {
+
+                let data = {
+                    userId : payload.userId, 
+                    role: payload.role, 
+                    patients:[]
+                }
+    
+                payload.patients.forEach(patient => {
+
+                    if(patient.patientId && patient.MAC){
+                        
+                        let vitals = getDummyVitals()
+                        let triggers = checkTriggers(vitals)
+                        let finalPatientData = {
+                            patientId : patient.patientId, 
+                            MAC: patient.MAC, 
+                            ...vitals, 
+                            triggers
+                        }
+                        data.patients.push(finalPatientData)
+                    }
+                })
+
+                socket.emit('DATA_LIVE_MULTIPLE', data)
+
+            }, 5000)
+            socket.on('disconnect', ()=>{
+                clearInterval(interval)
+                console.log('Demo data stopped!')
+            })
+
+            //Data from MQTT client
+            // client.on('message', (topic, message)=>{
+            //     // payload.MACS.forEach(MAC => {
+            //     //     console.log({MAC: MAC, ...JSON.parse(message)})
+            //     // })
+            //     let triggers = checkTriggers(JSON.parse(message))
+            //     socket.emit('liveData', {...JSON.parse(message), triggers})
+            //     console.log('emitted')
+            // })
+        }
+
+    })
+
+    socket.on('disconnect', () =>  {
+        console.log(`Client Disconnected From Monitoring Station - ${socket.id}`)
+    })
 })
 
 
