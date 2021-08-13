@@ -1,9 +1,31 @@
 var mqtt = require('mqtt')
-var client = mqtt.connect('mqtt://localhost')
-var topicList = ['elivband/#'];
+var client = mqtt.connect('mqtt://eliv.ssdemo.xyz/')
+// var client = mqtt.connect('mqtt://localhost')
 
-const isLoop = false;
-const delay = 5000;
+console.log("Listening to events");
+client.on('connect', function () {
+  client.subscribe('elivband/#', function (err) {
+    if (!err) {
+      console.log("Subscribed Successfully")
+    } else {
+      console.log("An error occured")
+    }
+  })
+})
+
+// client.on('message', function (topic, message) {
+//   // message is Buffer
+//   let array = new Uint8Array(message);
+// 		var result = "";
+// 		for (var i = 0; i < array.length; ++i) {
+// 			result += (String.fromCharCode(array[i]));
+// 		}
+//    console.log("Message Received : " , result);
+// })
+
+
+const isLoop = true;
+const delay = 10000;
 const isRandom = true;
 
 let heartRate;
@@ -16,25 +38,27 @@ let bodyTemp;
 let rawData;
 let gatewayCommand;
 
+let DEVICE_MACS = [1546, 1248]
 
 if (isLoop) {
-
-  setInterval(() => {
-    generateDummyValues();
-    client.publish('elivband', JSON.stringify(gatewayCommand))
-  }, delay);
+  DEVICE_MACS.forEach((MAC, i)=>{
+    setInterval(() => {
+      generateDummyValues(MAC);
+      client.publish('elivband', JSON.stringify(gatewayCommand))
+    }, delay);
+  })
 
 } else {
-  generateDummyValues();
+  generateDummyValues(1546);
   client.publish('elivband', JSON.stringify(gatewayCommand))
 }
 
-function generateDummyValues() {
+function generateDummyValues(MAC) {
 
   if (!isRandom) {
     heartRate = 50 //60 - 100 normal 
     spo2 = 80;
-    trigger = 00;
+    trigger = 05;
     battery = 90;
     bps = 60;
     bpd = 110;
@@ -49,11 +73,11 @@ function generateDummyValues() {
     bodyTemp = randomIntFromInterval(25, 45)
   }
 
-  console.log(" Heart Rate: ", heartRate);
-  console.log(" Spo2: ", spo2);
-  console.log(" Bps", bps);
-  console.log(" Bpd", bpd);
-  console.log(" Body Temp", bodyTemp)
+  // console.log(" Heart Rate: ", heartRate);
+  // console.log(" Spo2: ", spo2);
+  // console.log(" Bps", bps);
+  // console.log(" Bpd", bpd);
+  // console.log(" Body Temp", bodyTemp)
 
   rawData = "0201040BFF00001A"
   rawData += (heartRate.toString(16).toUpperCase().padStart(2, "0"));
@@ -63,7 +87,7 @@ function generateDummyValues() {
   rawData += (bps.toString(16).toUpperCase().padStart(2, "0"));
   rawData += (bpd.toString(16).toUpperCase().padStart(2, "0"));
   rawData += (bodyTemp.toString(16).toUpperCase().padStart(2, "0"));
-  // console.log(rawData);
+  console.log("MAC",MAC, "-", rawData);
 
 
 
@@ -79,32 +103,16 @@ function generateDummyValues() {
     {
       "timestamp": "2021-05-05T10:32:26.172Z",
       "type": "Unknown",
-      "mac": "1546",
+      "mac": MAC,
       "bleName": false, "rssi": -45, "rawData": rawData
     }]
+
 }
 
 function randomIntFromInterval(min, max) { // min and max included 
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
-client.on('connect', ()=>{
-  setInterval(()=>{
-    generateDummyValues()
-    // client.publish("details", `HR=${heartRate}, BPD=${bpd}, BPS=${bps}, SPO2=${spo2}, BODY_TEMP=${bodyTemp}, Battery=${battery}, Trigger=${trigger}`)
-    client.publish("details", 
-      JSON.stringify({
-        heartRate,
-        bpd,
-        bps,
-        spo2,
-        battery,
-        bodyTemp,
-        trigger
-      })
-    )
-  }, delay)
-})
 
 // console.log("Listening to events");
 // client.on('connect', function () {
@@ -124,4 +132,3 @@ client.on('connect', ()=>{
 // 		}
 //    console.log("Message : " ,result);
 // })
-

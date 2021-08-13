@@ -21,7 +21,7 @@ const ADMINS = io.of('/admin')
 const SUPER_ADMINS = io.of('/superadmin')
 
 //MQTT Connection
-const client = mqtt.connect('mqtt://122.160.15.59')
+const client = mqtt.connect('mqtt://localhost')
 client.on('connect', ()=>{
     client.subscribe('details', (err)=>{
         if(!err) console.log('Subscribed to MQTT Successfully!')
